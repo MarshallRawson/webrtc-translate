@@ -9,6 +9,10 @@ var remoteStream;
 let sendChannel;
 let receiveChannel;
 let dataChannelReceive = document.querySelector('textarea#dataChannelReceive');
+let dataChannelSend = document.querySelector('textarea#dataChannelSend');
+let sendButton = document.querySelector('button#sendButton');
+sendButton.onclick = sendData;
+let chatHistory = document.getElementById('chatHistory');
 
 // TODO Turn server impl https://www.metered.ca/tools/openrelay/
 var pcConfig = {
@@ -16,7 +20,6 @@ var pcConfig = {
     'urls': 'stun:stun.l.google.com:19302'
   }]
 };
-
 
 var sdpConstraints = {
   offerToReceiveAudio: true,
@@ -133,6 +136,9 @@ function createPeerConnection() {
     pc.onaddstream = handleRemoteStreamAdded;
     pc.ondatachannel = receiveChannelCallback;
     pc.onremovestream = handleRemoteStreamRemoved;
+    sendChannel = pc.createDataChannel('sendDataChannel', null);
+    sendChannel.onopen = onSendChannelStateChange;
+    sendChannel.onclose = onSendChannelStateChange;
     console.log('Created RTCPeerConnnection');
   } catch (e) {
     console.log('Failed to create PeerConnection, exception: ' + e.message);
@@ -219,7 +225,10 @@ function receiveChannelCallback(event) {
 }
 
 function onReceiveMessageCallback(event) {
-  dataChannelReceive.value = event.data;
+  let p = document.createElement("p");
+  p.innerHTML = event.data;
+  p.style = "text-align:left;";
+  chatHistory.append(p);
 }
 
 function onReceiveChannelStateChange() {
@@ -227,7 +236,30 @@ function onReceiveChannelStateChange() {
   console.trace('Receive channel state is: ' + readyState);
 }
 
+function sendData() {
+  var data = dataChannelSend.value;
+  sendChannel.send(data);
+  let p = document.createElement("p");
+  p.innerHTML = data;
+  p.style = "text-align:right;";
+  chatHistory.append(p);
+  console.trace('Sent Data: ' + data);
+}
 
+function onSendChannelStateChange() {
+  let readyState = sendChannel.readyState;
+  console.trace('Send channel state is: ' + readyState);
+  if (readyState === 'open') {
+    dataChannelSend.disabled = false;
+    dataChannelSend.focus();
+    sendButton.disabled = false;
+    //closeButton.disabled = false;
+  } else {
+    dataChannelSend.disabled = true;
+    sendButton.disabled = true;
+    //closeButton.disabled = true;
+  }
+}
 
 
 
@@ -249,7 +281,6 @@ function onReceiveChannelStateChange() {
 //let localPeerConnection;
 //let remotePeerConnection;
 //
-//let dataChannelSend = document.querySelector('textarea#dataChannelSend');
 //let dataChannelReceive = document.querySelector('textarea#dataChannelReceive');
 //let sendButton = document.querySelector('button#sendButton');
 //sendButton.onclick = sendData;

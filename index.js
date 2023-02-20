@@ -8,11 +8,13 @@ var socketIO = require('socket.io');
 var fileServer = new(nodeStatic.Server)();
 
 const fs = require('node:fs');
+console.log("test");
 
 const options = {
   key: fs.readFileSync('keys/key.pem'),
-  cert: fs.readFileSync('keys/key-cert.pem'),
+  cert: fs.readFileSync('keys/cert.pem'),
 };
+console.log("Running on https://localhost:8080");
 var app = https.createServer(options, function(req, res) {
   fileServer.serve(req, res);
 }).listen(8080);
