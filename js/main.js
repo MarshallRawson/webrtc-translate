@@ -22,7 +22,7 @@ playButton.disabled = true;
 var player;
 
 // TODO Turn server impl https://www.metered.ca/tools/openrelay/
-var pcConfig = {
+var pcConfig = null;{
   'iceServers': [{
     'urls': 'stun:stun.l.google.com:19302'
   }]
@@ -33,7 +33,13 @@ var sdpConstraints = {
   offerToReceiveVideo: true
 };
 
-var room = "foo";//prompt("Enter room name:");
+let room = new URLSearchParams(window.location.search).get("room");
+if (!room) {
+  room = prompt("Enter room name:");
+  let params = new URLSearchParams(window.location.search);
+  params.set('room', room);
+  window.location.search = params.toString();
+}
 
 var socket = io.connect();
 
@@ -62,13 +68,13 @@ socket.on('joined', function(room, clientId) {
   isChannelReady = true;
 });
 
-socket.on('log', function(array) {
-  console.log.apply(console, array);
+socket.on('closing room', function() {
+    closeButton.disabled = true;
 });
 
 function sendMessage(message) {
   console.log('Client sending message: ', message);
-  socket.emit('message', message);
+  socket.emit('message', room, message);
 }
 
 socket.on('message', function(message) {
@@ -110,8 +116,8 @@ navigator.mediaDevices.getUserMedia(mediaStreamConstraints)
 function gotStream(mediaStream) {
   localVideo.srcObject = mediaStream;
   localStream = mediaStream;
-  console.trace('Received local stream.');
-    sendMessage('got user media');
+  console.log('Received local stream.');
+  sendMessage('got user media');
   if (isInitiator) {
     maybeStart();
   }
@@ -137,7 +143,6 @@ function closeRoom() {
 
 
 window.onbeforeunload = function() {
-  socket.emit('leave', room);
   sendMessage('bye');
 };
 
@@ -197,7 +202,7 @@ function setLocalAndSendMessage(sessionDescription) {
 }
 
 function onCreateSessionDescriptionError(error) {
-  console.trace('Failed to create session description: ' + error.toString());
+  console.log('Failed to create session description: ' + error.toString());
 }
 
 
@@ -241,7 +246,7 @@ function onReceiveMessageCallback(event) {
 
 function onReceiveChannelStateChange() {
   var readyState = receiveChannel.readyState;
-  console.trace('Receive channel state is: ' + readyState);
+  console.log('Receive channel state is: ' + readyState);
 }
 
 function sendData() {
@@ -257,7 +262,7 @@ function sendTextData(data) {
   p.innerHTML = data;
   p.style = "text-align:right;";
   chatHistory.append(p);
-  console.trace('Sent Data: ' + data);
+  console.log('Sent Data: ' + data);
 }
 
 var ytInitiator = false;
@@ -322,9 +327,10 @@ function scanForCommand(text) {
 
 function onSendChannelStateChange() {
   let readyState = sendChannel.readyState;
-  console.trace('Send channel state is: ' + readyState);
+  console.log('Send channel state is: ' + readyState);
   if (readyState === 'open') {
     dataChannelSend.disabled = false;
+    sendButton.disabled = false;
     dataChannelSend.focus();
     sendButton.disabled = false;
   } else {

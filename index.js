@@ -20,22 +20,15 @@ var app = https.createServer(options, function(req, res) {
 
 var io = socketIO.listen(app);
 io.sockets.on('connection', function(socket) {
-
-  // convenience function to log server messages on the client
-  function log() {
-    var array = ['Message from server:'];
-    array.push.apply(array, arguments);
-    socket.emit('log', array);
-  }
-
-  socket.on('message', function(message) {
-    log('Client said: ', message);
-    // for a real app, would be room-only (not broadcast)
-    socket.broadcast.emit('message', message);
+  socket.on('message', function(room_name, message) {
+    console.info('Client said: ', message, ' in room ', socket.rooms[room_name]);
+    if (socket.rooms[room_name]) {
+      socket.to(room_name).emit('message', message);
+    }
   });
 
   socket.on('create or join', function(room) {
-    log('Received request to create or join room ' + room);
+    console.log('Received request to create or join room ' + room);
 
     var clientsInRoom = io.sockets.adapter.rooms[room];
     var numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
@@ -43,10 +36,10 @@ io.sockets.on('connection', function(socket) {
 
     if (numClients === 0) {
       socket.join(room);
-      log('Client ID ' + socket.id + ' created room ' + room);
+      console.log('Client ID ' + socket.id + ' created room ' + room);
       socket.emit('created', room, socket.id);
     } else if (numClients === 1) {
-      log('Client ID ' + socket.id + ' joined room ' + room);
+      console.log('Client ID ' + socket.id + ' joined room ' + room);
       io.sockets.in(room).emit('join', room);
       socket.join(room);
       socket.emit('joined', room, socket.id);
@@ -54,22 +47,19 @@ io.sockets.on('connection', function(socket) {
     } else { // max two clients
       socket.emit('full', room);
     }
-  });
-
-  socket.on('leave', function(room_name) {
-    socket.leave(room_name);
+    console.log(io.sockets.adapter.rooms);
   });
 
   socket.on('close room', function(room_name) {
-    console.log(io.sockets.adapter.rooms);
-    console.log(io.sockets.adapter.rooms[room_name].sockets);//.forEach(function(s) {
-    for (let [key, value] of Object.entries(io.sockets.adapter.rooms[room_name].sockets)) {
-      console.log(key);
-      io.sockets.sockets[key].leave(room_name);
-      io.sockets.sockets.delete(key);
+    console.log("before closing room: ", room_name, " : ", io.sockets.adapter.rooms);
+    io.sockets.in(room_name).emit('closing room');
+    let room = io.sockets.adapter.rooms[room_name];
+    if (room) {
+        for (let client of Object.keys(room.sockets)) {
+          io.sockets.sockets[client].disconnect();
+        }
     }
-    console.log(io.sockets.adapter.rooms);
-    //console.log(io.sockets.adapter.rooms[room_name].sockets);//.forEach(function(s) {
+    console.log("after closing room: ", room_name, " : ", io.sockets.adapter.rooms);
   });
 
   socket.on('ipaddr', function() {
