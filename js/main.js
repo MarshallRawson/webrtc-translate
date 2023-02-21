@@ -22,7 +22,7 @@ playButton.disabled = true;
 var player;
 
 // TODO Turn server impl https://www.metered.ca/tools/openrelay/
-var pcConfig = null;{
+var pcConfig = {
   'iceServers': [{
     'urls': 'stun:stun.l.google.com:19302'
   }]
@@ -205,7 +205,6 @@ function onCreateSessionDescriptionError(error) {
   console.log('Failed to create session description: ' + error.toString());
 }
 
-
 function handleRemoteStreamAdded(event) {
   console.log('Remote stream added.');
   remoteStream = event.stream;
@@ -256,7 +255,9 @@ function sendData() {
 }
 
 function sendTextData(data) {
+  console.log("test2");
   scanSendForCommand(data);
+  console.log("test3");
   sendChannel.send(data);
   let p = document.createElement("p");
   p.innerHTML = data;
@@ -284,6 +285,9 @@ function maybePlayYt() {
 function playInFuture(msecs) {
     setTimeout(() => {
       player.playVideo();
+      ytInitiator = false;
+      remoteYtLoaded = false;
+      localYtLoaded = false;
     }, msecs - Date.now());
 }
 
@@ -298,11 +302,11 @@ function scanRecvForCommand(text) {
 }
 
 function scanSendForCommand(text) {
+  console.log("scan send for command:", text);
   if (scanForCommand(text)) {
     ytInitiator = true;
   }
-  console.log("sent: ", text);
-  console.log("is yt init:", ytInitiator);
+  console.log(text, "is yt init:", ytInitiator);
   if (text.startsWith("!ack-yt")) {
     console.log("sent Ack!");
     localYtLoaded = true;
@@ -311,16 +315,17 @@ function scanSendForCommand(text) {
 }
 
 function scanForCommand(text) {
-  console.log("scanning:", text);
   let loadCmd = "!load-yt ";
   if (text.startsWith(loadCmd)) {
     let url = new URL(text.slice(loadCmd.length))
     console.log(url);
     let video = url.searchParams.get('v');
-    if (video && url.hostname === 'www.youtube.com') {
-      loadYT(video);
+    let time = url.searchParams.get('t');
+    if (url.hostname === 'www.youtube.com') {
+      console.log("test");
+      loadYT(video, time ? time : 0);
+      return true;
     }
-    return true;
   }
   return false;
 }
@@ -339,21 +344,34 @@ function onSendChannelStateChange() {
   }
 }
 
-function loadYT(video) {
-  player = new YT.Player('video-placeholder', {
-    width: 600,
-    height: 400,
-    videoId: video,
-    playerVars: {
-      color: 'white',
-    },
-    events: {
-      onReady: () => { sendTextData("!ack-yt"); }
-    }
-  });
+function loadYT(video, time) {
+  console.log('loading YT');
+  if (player) {
+    player.stopVideo();
+    player.loadVideoById({
+      videoId: video,
+      startSeconds: time
+    });
+    player.pauseVideo();
+    player.seekTo(time);
+    // eww
+    setTimeout(() => {
+      sendTextData("!ack-yt");
+    }, 1000);
+  } else {
+      player = new YT.Player('video-placeholder', {
+        videoId: video,
+        startSeconds: time,
+        playerVars: {
+          color: 'white',
+        },
+        events: {
+          onReady: () => { sendTextData("!ack-yt"); }
+        }
+    });
+  }
 }
 
 function playCallback() {
   player.playVideo();
 }
-
