@@ -8,7 +8,6 @@ var socketIO = require('socket.io');
 var fileServer = new(nodeStatic.Server)();
 
 const fs = require('node:fs');
-console.log("test");
 
 const options = {
   key: fs.readFileSync('keys/key.pem'),
@@ -40,13 +39,12 @@ io.sockets.on('connection', function(socket) {
 
     var clientsInRoom = io.sockets.adapter.rooms[room];
     var numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
-    log('Room ' + room + ' now has ' + numClients + ' client(s)');
+    console.log('Room ' + room + ' now has ' + numClients + ' client(s)');
 
     if (numClients === 0) {
       socket.join(room);
       log('Client ID ' + socket.id + ' created room ' + room);
       socket.emit('created', room, socket.id);
-
     } else if (numClients === 1) {
       log('Client ID ' + socket.id + ' joined room ' + room);
       io.sockets.in(room).emit('join', room);
@@ -56,6 +54,22 @@ io.sockets.on('connection', function(socket) {
     } else { // max two clients
       socket.emit('full', room);
     }
+  });
+
+  socket.on('leave', function(room_name) {
+    socket.leave(room_name);
+  });
+
+  socket.on('close room', function(room_name) {
+    console.log(io.sockets.adapter.rooms);
+    console.log(io.sockets.adapter.rooms[room_name].sockets);//.forEach(function(s) {
+    for (let [key, value] of Object.entries(io.sockets.adapter.rooms[room_name].sockets)) {
+      console.log(key);
+      io.sockets.sockets[key].leave(room_name);
+      io.sockets.sockets.delete(key);
+    }
+    console.log(io.sockets.adapter.rooms);
+    //console.log(io.sockets.adapter.rooms[room_name].sockets);//.forEach(function(s) {
   });
 
   socket.on('ipaddr', function() {

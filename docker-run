@@ -1,0 +1,2 @@
+#!/bin/bash
+docker run -it -v ./:/usr/src/app/ -p 8080:8080 webrtc-nonsense
