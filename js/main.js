@@ -16,9 +16,6 @@ closeButton.onclick = closeRoom;
 let sendButton = document.querySelector('button#sendButton');
 sendButton.onclick = sendData;
 let chatHistory = document.getElementById('chatHistory');
-let playButton = document.querySelector('#playButton');
-playButton.onclick = playCallback;
-playButton.disabled = true;
 var player;
 
 // TODO Turn server impl https://www.metered.ca/tools/openrelay/
@@ -130,7 +127,6 @@ function maybeStart() {
     createPeerConnection();
     pc.addStream(localStream);
     isStarted = true;
-    console.log('isInitiator', isInitiator);
     if (isInitiator) {
       doCall();
     }
@@ -255,9 +251,7 @@ function sendData() {
 }
 
 function sendTextData(data) {
-  console.log("test2");
   scanSendForCommand(data);
-  console.log("test3");
   sendChannel.send(data);
   let p = document.createElement("p");
   p.innerHTML = data;
@@ -270,20 +264,23 @@ var ytInitiator = false;
 var remoteYtLoaded = false;
 var localYtLoaded = false;
 
-function maybePlayYt() {
-  console.log("maybe !play-yt", remoteYtLoaded, localYtLoaded, ytInitiator);
+function maybePlayYt(videoTime) {
   if (remoteYtLoaded && localYtLoaded && ytInitiator) {
     remoteYtLoaded = false;
     localYtLoaded = false;
     ytInitiator = false;
     let playTime = Date.now() + 5000;
-    sendTextData("!play-yt " + playTime.toString());
-    playInFuture(playTime);
+    sendTextData("!play-yt " + playTime.toString() + " " + videoTime.toString());
+    playInFuture(playTime, videoTime);
   }
 }
 
-function playInFuture(msecs) {
+function playInFuture(msecs, videoTime) {
+    player.seekTo(videoTime);
+    player.pauseVideo();
     setTimeout(() => {
+      playButton.innerText = 'Pause';
+      playButton.disabled = false;
       player.playVideo();
       ytInitiator = false;
       remoteYtLoaded = false;
@@ -291,43 +288,42 @@ function playInFuture(msecs) {
     }, msecs - Date.now());
 }
 
+const loadCmd = "!load-yt ";
+
 function scanRecvForCommand(text) {
-  scanForCommand(text);
-  if (text.startsWith("!ack-yt")) {
-    remoteYtLoaded = true;
-    maybePlayYt();
-  } else if (text.startsWith("!play-yt ")) {
-    playInFuture(parseInt(text.slice("!play-yt ".length)));
-  }
-}
-
-function scanSendForCommand(text) {
-  console.log("scan send for command:", text);
-  if (scanForCommand(text)) {
-    ytInitiator = true;
-  }
-  console.log(text, "is yt init:", ytInitiator);
-  if (text.startsWith("!ack-yt")) {
-    console.log("sent Ack!");
-    localYtLoaded = true;
-    maybePlayYt();
-  }
-}
-
-function scanForCommand(text) {
-  let loadCmd = "!load-yt ";
   if (text.startsWith(loadCmd)) {
     let url = new URL(text.slice(loadCmd.length))
     console.log(url);
     let video = url.searchParams.get('v');
     let time = url.searchParams.get('t');
     if (url.hostname === 'www.youtube.com') {
-      console.log("test");
+      ytInitiator = false;
       loadYT(video, time ? time : 0);
-      return true;
+    }
+  } else if (text.startsWith("!ack-yt")) {
+    remoteYtLoaded = true;
+    maybePlayYt(0);
+  } else if (text.startsWith("!play-yt ")) {
+    let [playTime, videoTime] = text.slice("!play-yt ".length).split(" ");
+    playInFuture(parseInt(playTime), parseFloat(videoTime));
+  } else if (text.startsWith("!pause")) {
+    playButton.innerText = 'Play';
+    player.pauseVideo();
+    player.seekTo(parseInt(text.slice("!pause ".length).split(" ")));
+  }
+}
+
+function scanSendForCommand(text) {
+  if (text.startsWith(loadCmd)) {
+    let url = new URL(text.slice(loadCmd.length))
+    console.log(url);
+    let video = url.searchParams.get('v');
+    let time = url.searchParams.get('t');
+    if (url.hostname === 'www.youtube.com') {
+      ytInitiator = true;
+      loadYT(video, time ? time : 0);
     }
   }
-  return false;
 }
 
 function onSendChannelStateChange() {
@@ -345,7 +341,6 @@ function onSendChannelStateChange() {
 }
 
 function loadYT(video, time) {
-  console.log('loading YT');
   if (player) {
     player.stopVideo();
     player.loadVideoById({
@@ -354,24 +349,51 @@ function loadYT(video, time) {
     });
     player.pauseVideo();
     player.seekTo(time);
-    // eww
-    setTimeout(() => {
+    if (ytInitiator) {
+      localYtLoaded = true;
+      maybePlayYt(time);
+    } else {
       sendTextData("!ack-yt");
-    }, 1000);
+    }
   } else {
-      player = new YT.Player('video-placeholder', {
-        videoId: video,
-        startSeconds: time,
-        playerVars: {
-          color: 'white',
-        },
-        events: {
-          onReady: () => { sendTextData("!ack-yt"); }
+    player = new YT.Player('video-placeholder', {
+      videoId: video,
+      startSeconds: time,
+      playerVars: {
+        color: 'white',
+      },
+      events: {
+        onReady: () => {
+          player.pauseVideo();
+          playButton.disabled = false;
+          if (ytInitiator) {
+            localYtLoaded = true;
+            maybePlayYt(time);
+          } else {
+            sendTextData("!ack-yt");
+          }
         }
+      }
     });
   }
 }
 
+let playButton = document.querySelector('#playButton');
+playButton.onclick = playCallback;
+playButton.disabled = true;
+
 function playCallback() {
-  player.playVideo();
+  if (playButton.innerText === 'Play') {
+    playButton.innerText = 'Pause';
+    playButton.disabled = true;
+    let videoTime = player.getCurrentTime();
+    let playTime = Date.now() + 5000;
+    sendTextData("!play-yt " + playTime.toString() + " " + videoTime.toString());
+    playInFuture(playTime, videoTime);
+  } else if (playButton.innerText === 'Pause') {
+    playButton.innerText = 'Play';
+    let videoTime = player.getCurrentTime();
+    player.pauseVideo();
+    sendTextData('!pause ' + videoTime.toString());
+  }
 }
