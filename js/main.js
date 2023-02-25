@@ -137,7 +137,6 @@ function closeRoom() {
   socket.emit('close room', room);
 }
 
-
 window.onbeforeunload = function() {
   sendMessage('bye');
 };
@@ -340,6 +339,9 @@ function onSendChannelStateChange() {
   }
 }
 
+
+// TODO use shaka player https://shaka-player-demo.appspot.com/docs/api/shaka.Player.html
+// TODO lookup video src via https://shaka-player-demo.appspot.com/docs/api/shaka.Player.html
 function loadYT(video, time) {
   if (player) {
     player.stopVideo();
