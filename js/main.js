@@ -16,7 +16,6 @@ closeButton.onclick = closeRoom;
 let sendButton = document.querySelector('button#sendButton');
 sendButton.onclick = sendData;
 let chatHistory = document.getElementById('chatHistory');
-var player;
 
 // TODO Turn server impl https://www.metered.ca/tools/openrelay/
 var pcConfig = {
@@ -275,12 +274,12 @@ function maybePlayYt(videoTime) {
 }
 
 function playInFuture(msecs, videoTime) {
-    player.seekTo(videoTime);
-    player.pauseVideo();
+    player.fastSeek(videoTime);
+    player.pause();
     setTimeout(() => {
       playButton.innerText = 'Pause';
       playButton.disabled = false;
-      player.playVideo();
+      player.play();
       ytInitiator = false;
       remoteYtLoaded = false;
       localYtLoaded = false;
@@ -307,8 +306,8 @@ function scanRecvForCommand(text) {
     playInFuture(parseInt(playTime), parseFloat(videoTime));
   } else if (text.startsWith("!pause")) {
     playButton.innerText = 'Play';
-    player.pauseVideo();
-    player.seekTo(parseInt(text.slice("!pause ".length).split(" ")));
+    player.pause();
+    player.fastSeek(parseInt(text.slice("!pause ".length).split(" ")));
   }
 }
 
@@ -339,45 +338,25 @@ function onSendChannelStateChange() {
   }
 }
 
+let player = document.getElementById("media-player");
 
-// TODO use shaka player https://shaka-player-demo.appspot.com/docs/api/shaka.Player.html
-// TODO lookup video src via https://shaka-player-demo.appspot.com/docs/api/shaka.Player.html
 function loadYT(video, time) {
-  if (player) {
-    player.stopVideo();
-    player.loadVideoById({
-      videoId: video,
-      startSeconds: time
-    });
-    player.pauseVideo();
-    player.seekTo(time);
-    if (ytInitiator) {
-      localYtLoaded = true;
-      maybePlayYt(time);
-    } else {
-      sendTextData("!ack-yt");
-    }
-  } else {
-    player = new YT.Player('video-placeholder', {
-      videoId: video,
-      startSeconds: time,
-      playerVars: {
-        color: 'white',
-      },
-      events: {
-        onReady: () => {
-          player.pauseVideo();
-          playButton.disabled = false;
-          if (ytInitiator) {
-            localYtLoaded = true;
-            maybePlayYt(time);
-          } else {
-            sendTextData("!ack-yt");
-          }
-        }
+  fetch("https://pipedapi.kavin.rocks/streams/" + video)
+    .then((response) => response.json())
+    .then((data) => {
+      let url = data.videoStreams[0].url;
+      console.log("setting video source to:", url);
+      player.src = url;
+      player.pause();
+      player.fastSeek(time);
+      playButton.disabled = false;
+      if (ytInitiator) {
+        localYtLoaded = true;
+        maybePlayYt(time);
+      } else {
+        sendTextData("!ack-yt");
       }
     });
-  }
 }
 
 let playButton = document.querySelector('#playButton');
@@ -388,14 +367,14 @@ function playCallback() {
   if (playButton.innerText === 'Play') {
     playButton.innerText = 'Pause';
     playButton.disabled = true;
-    let videoTime = player.getCurrentTime();
+    let videoTime = player.currentTime;
     let playTime = Date.now() + 5000;
     sendTextData("!play-yt " + playTime.toString() + " " + videoTime.toString());
     playInFuture(playTime, videoTime);
   } else if (playButton.innerText === 'Pause') {
     playButton.innerText = 'Play';
-    let videoTime = player.getCurrentTime();
-    player.pauseVideo();
+    let videoTime = player.currentTime;
+    player.pause();
     sendTextData('!pause ' + videoTime.toString());
   }
 }
