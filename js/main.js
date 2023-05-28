@@ -349,13 +349,14 @@ function loadYT(video, time) {
       player.src = url;
       player.pause();
       player.fastSeek(time);
-      playButton.disabled = false;
-      if (ytInitiator) {
-        localYtLoaded = true;
-        maybePlayYt(time);
-      } else {
-        sendTextData("!ack-yt");
-      }
+      player.addEventListener('canplay', () => {
+        if (ytInitiator) {
+          localYtLoaded = true;
+          maybePlayYt(time);
+        } else {
+          sendTextData("!ack-yt");
+        }
+      });
     });
 }
 
