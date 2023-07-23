@@ -1,33 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Realtime communication with WebRTC</title>
+  <title>Chat</title>
   <link rel="stylesheet" href="css/main.css" />
 </head>
 <body>
-  <h1>Realtime communication with WebRTC</h1>
-  <video id="localVideo" autoplay playsinline></video>
+  <h1>Chat</h1>
+  <video id="localVideo" style="rotate:0 1 0 180deg;" autoplay playsinline></video>
   <video id="remoteVideo" autoplay playsinline></video>
-  <div>
+  <div style="display:none">
     <button id="closeButton">Close Room</button>
   </div>
-  <div>
-    <video controls autoplay id="media-player">
-    </video>
-  </div>
-  <div>
-    <button id="playButton">Pause</button>
-  </div>
-  <div>
-    <h2>Chat</h2>
-      <div id="chatHistory" style="border:1px solid black;">
-      </div>
-  </div>
-  <textarea id="dataChannelSend" disabled style="width:100%;"></textarea>
-  <div id="buttons">
-    <button id="sendButton">Send</button>
-  </div>
-
     <div id="div_language">
 	        <select id="select_language" onchange="updateCountry()"></select>
 		    &nbsp;&nbsp;
@@ -35,8 +18,10 @@
 			  </div>
 
 			  <div class="right">
-				    <button id="start_button" onclick="startButton(event)">
+			    	    <button id="start_button" onclick="startButton(event)">
 					        Start</button>
+				    <button id="reset_button" onclick="resetButton(event)">
+					        Reset</button>
 			  </div>
 
 			  <div id="google_translate_element"></div>

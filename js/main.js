@@ -10,12 +10,10 @@ let sendChannel;
 let receiveChannel;
 let dataChannelReceive = document.querySelector('textarea#dataChannelReceive');
 let dataChannelSend = document.querySelector('textarea#dataChannelSend');
-dataChannelSend.value = '!load-yt https://www.youtube.com/watch?v=G8nNGk6LHaM';
 let closeButton = document.querySelector('#closeButton');
 closeButton.onclick = closeRoom;
-let sendButton = document.querySelector('button#sendButton');
-sendButton.onclick = sendData;
 let chatHistory = document.getElementById('chatHistory');
+let max_transcript_len = 150;
 
 // TODO Turn server impl https://www.metered.ca/tools/openrelay/
 var pcConfig = {
@@ -229,7 +227,17 @@ function receiveChannelCallback(event) {
 }
 
 function onReceiveMessageCallback(event) {
-  final_span.innerHTML = event.data;
+console.log('Received: '+event.data);
+final_transcript = event.data;
+if(final_transcript && final_transcript.length > 0){
+final_span.innerHTML = final_transcript;
+} 
+
+  if(final_span.innerHTML.length > max_transcript_len){
+    final_span.innerHTML = final_span.innerHTML.substring(final_span.innerHTML.length-max_transcript_len, 
+							  final_span.innerHTML.length-1);
+    interim_span.innerHTML = '';
+  }
 }
 
 
@@ -245,7 +253,7 @@ function sendData() {
 }
 
 function sendTextData(data) {
-  scanSendForCommand(data);
+  //scanSendForCommand(data);
   sendChannel.send(data);
   let p = document.createElement("p");
   p.innerHTML = data;
@@ -255,7 +263,7 @@ function sendTextData(data) {
 }
 
 function sendCaptionData(data) {
-  scanSendForCommand(data);
+  //scanSendForCommand(data);
   sendChannel.send(data);
   console.log('Sent Data: ' + data);
 }
@@ -273,19 +281,6 @@ function maybePlayYt(videoTime) {
     sendTextData("!play-yt " + playTime.toString() + " " + videoTime.toString());
     playInFuture(playTime, videoTime);
   }
-}
-
-function playInFuture(msecs, videoTime) {
-    player.fastSeek(videoTime);
-    player.pause();
-    setTimeout(() => {
-      playButton.innerText = 'Pause';
-      playButton.disabled = false;
-      player.play();
-      ytInitiator = false;
-      remoteYtLoaded = false;
-      localYtLoaded = false;
-    }, msecs - Date.now());
 }
 
 const loadCmd = "!load-yt ";
@@ -331,12 +326,9 @@ function onSendChannelStateChange() {
   console.log('Send channel state is: ' + readyState);
   if (readyState === 'open') {
     dataChannelSend.disabled = false;
-    sendButton.disabled = false;
     dataChannelSend.focus();
-    sendButton.disabled = false;
   } else {
     dataChannelSend.disabled = true;
-    sendButton.disabled = true;
   }
 }
 
@@ -362,29 +354,6 @@ function loadYT(video, time) {
     });
 }
 
-let playButton = document.querySelector('#playButton');
-playButton.onclick = playCallback;
-playButton.disabled = true;
-
-function playCallback() {
-  if (playButton.innerText === 'Play') {
-    playButton.innerText = 'Pause';
-    playButton.disabled = true;
-    let videoTime = player.currentTime;
-    let playTime = Date.now() + 5000;
-    sendTextData("!play-yt " + playTime.toString() + " " + videoTime.toString());
-    playInFuture(playTime, videoTime);
-  } else if (playButton.innerText === 'Pause') {
-    playButton.innerText = 'Play';
-    let videoTime = player.currentTime;
-    player.pause();
-    sendTextData('!pause ' + videoTime.toString());
-  }
-}
-
-
-
-
 var langs =
 	[['Afrikaans',       ['af-ZA']],
 		 ['Bahasa Indonesia',['id-ID']],
@@ -393,32 +362,32 @@ var langs =
 		 ['Čeština',         ['cs-CZ']],
 		 ['Deutsch',         ['de-DE']],
 		 ['English',         ['en-AU', 'Australia'],
-			                      ['en-CA', 'Canada'],
-			                      ['en-IN', 'India'],
-			                      ['en-NZ', 'New Zealand'],
-			                      ['en-ZA', 'South Africa'],
-			                      ['en-GB', 'United Kingdom'],
-			                      ['en-US', 'United States']],
+			             ['en-CA', 'Canada'],
+				      ['en-IN', 'India'],
+				      ['en-NZ', 'New Zealand'],
+				      ['en-ZA', 'South Africa'],
+				      ['en-GB', 'United Kingdom'],
+				      ['en-US', 'United States']],
 		 ['Español',         ['es-AR', 'Argentina'],
-			                      ['es-BO', 'Bolivia'],
-			                      ['es-CL', 'Chile'],
-			                      ['es-CO', 'Colombia'],
-			                      ['es-CR', 'Costa Rica'],
-			                      ['es-EC', 'Ecuador'],
-			                      ['es-SV', 'El Salvador'],
-			                      ['es-ES', 'España'],
-			                      ['es-US', 'Estados Unidos'],
-			                      ['es-GT', 'Guatemala'],
-			                      ['es-HN', 'Honduras'],
-			                      ['es-MX', 'México'],
-			                      ['es-NI', 'Nicaragua'],
-			                      ['es-PA', 'Panamá'],
-			                      ['es-PY', 'Paraguay'],
-			                      ['es-PE', 'Perú'],
-			                      ['es-PR', 'Puerto Rico'],
-			                      ['es-DO', 'República Dominicana'],
-			                      ['es-UY', 'Uruguay'],
-			                      ['es-VE', 'Venezuela']],
+		                     ['es-BO', 'Bolivia'],
+		                     ['es-CL', 'Chile'],
+				      ['es-CO', 'Colombia'],
+				      ['es-CR', 'Costa Rica'],
+				      ['es-EC', 'Ecuador'],
+				      ['es-SV', 'El Salvador'],
+				      ['es-ES', 'España'],
+				      ['es-US', 'Estados Unidos'],
+				      ['es-GT', 'Guatemala'],
+				      ['es-HN', 'Honduras'],
+				      ['es-MX', 'México'],
+				      ['es-NI', 'Nicaragua'],
+				      ['es-PA', 'Panamá'],
+				      ['es-PY', 'Paraguay'],
+				      ['es-PE', 'Perú'],
+				      ['es-PR', 'Puerto Rico'],
+				      ['es-DO', 'República Dominicana'],
+				      ['es-UY', 'Uruguay'],
+				      ['es-VE', 'Venezuela']],
 		 ['Euskara',         ['eu-ES']],
 		 ['Français',        ['fr-FR']],
 		 ['Galego',          ['gl-ES']],
@@ -426,13 +395,13 @@ var langs =
 		 ['IsiZulu',         ['zu-ZA']],
 		 ['Íslenska',        ['is-IS']],
 		 ['Italiano',        ['it-IT', 'Italia'],
-			                      ['it-CH', 'Svizzera']],
+		                     ['it-CH', 'Svizzera']],
 		 ['Magyar',          ['hu-HU']],
 		 ['Nederlands',      ['nl-NL']],
 		 ['Norsk bokmål',    ['nb-NO']],
 		 ['Polski',          ['pl-PL']],
 		 ['Português',       ['pt-BR', 'Brasil'],
-			                      ['pt-PT', 'Portugal']],
+		                     ['pt-PT', 'Portugal']],
 		 ['Română',          ['ro-RO']],
 		 ['Slovenčina',      ['sk-SK']],
 		 ['Suomi',           ['fi-FI']],
@@ -441,12 +410,7 @@ var langs =
 		 ['български',       ['bg-BG']],
 		 ['Pусский',         ['ru-RU']],
 		 ['Српски',          ['sr-RS']],
-		 ['한국어',            ['ko-KR']],
-		 ['中文',             ['cmn-Hans-CN', '普通话 (中国大陆)'],
-			                      ['cmn-Hans-HK', '普通话 (香港)'],
-			                      ['cmn-Hant-TW', '中文 (台灣)'],
-			                      ['yue-Hant-HK', '粵語 (香港)']],
-		 ['日本語',           ['ja-JP']],
+		 ['Viet',            ['vi-VI']],
 		 ['Lingua latīna',   ['la']]];
 
 for (var i = 0; i < langs.length; i++) {
@@ -470,14 +434,18 @@ function updateCountry() {
 
 var create_email = false;
 var final_transcript = '';
+var interim_transcript = '';
 var recognizing = false;
 var ignore_onend;
 var start_timestamp;
+var recognition;
+
+function setupSpeechRecog(){
 if (!('webkitSpeechRecognition' in window)) {
 	  upgrade();
 } else {
 	  start_button.style.display = 'inline-block';
-	  var recognition = new webkitSpeechRecognition();
+	  recognition = new webkitSpeechRecognition();
 	  recognition.continuous = true;
 	  recognition.interimResults = true;
 
@@ -541,15 +509,28 @@ if (!('webkitSpeechRecognition' in window)) {
 							        }
 			          }
 		      final_transcript = capitalize(final_transcript);
-		      final_span.innerHTML = linebreak(final_transcript);
+		      final_transcript = linebreak(final_transcript);
+			
+                      if(final_transcript.length > max_transcript_len){
+                        final_transcript = final_transcript.substring(final_transcript.length-max_transcript_len, 
+									final_transcript.length-1);
+                      }	
+
+		      final_span.innerHTML = final_transcript;
 		      interim_span.innerHTML = linebreak(interim_transcript);
 		      if (final_transcript || interim_transcript) {
 			            showButtons('inline-block');
 			          }
-		      sendCaptionData(final_transcript);
-		      console.log('end transcription');
+		      if (final_transcript.length > 0){
+			if(sendChannel != null){
+			  if(sendChannel.readyState == 'open'){
+			    sendCaptionData(final_transcript);
+		      }}}
 		    };
 }
+}
+
+setupSpeechRecog();
 
 function upgrade() {
 	  start_button.style.visibility = 'hidden';
@@ -617,6 +598,10 @@ function startButton(event) {
 	  start_timestamp = event.timeStamp;
 }
 
+function resetButton(event){
+	  setupSpeechRecog();
+}
+
 function showInfo(s) {
 	  if (s) {
 		      for (var child = info.firstChild; child; child = child.nextSibling) {
@@ -644,6 +629,8 @@ function showButtons(style) {
 
 function googleTranslateElementInit() {
 	  new google.translate.TranslateElement({pageLanguage: 'en'}, 'google_translate_element');
+//var language = window.navigator.userLanguage || window.navigator.language;
+//window.location.replace(`/#googtrans(${language})`);
 }
 
 
