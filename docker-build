@@ -1,2 +1,9 @@
 #!/bin/bash
 docker build -t webrtc-nonsense .
+
+# On first install do: 
+
+# npm install # in the docker 
+
+# ./make-keys 
+
