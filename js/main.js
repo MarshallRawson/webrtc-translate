@@ -229,11 +229,7 @@ function receiveChannelCallback(event) {
 }
 
 function onReceiveMessageCallback(event) {
-  let p = document.createElement("p");
-  p.innerHTML = event.data;
-  scanRecvForCommand(event.data);
-  p.style = "text-align:left;";
-  chatHistory.append(p);
+  final_span.innerHTML = event.data;
 }
 
 
@@ -255,6 +251,12 @@ function sendTextData(data) {
   p.innerHTML = data;
   p.style = "text-align:right;";
   chatHistory.append(p);
+  console.log('Sent Data: ' + data);
+}
+
+function sendCaptionData(data) {
+  scanSendForCommand(data);
+  sendChannel.send(data);
   console.log('Sent Data: ' + data);
 }
 
@@ -544,6 +546,8 @@ if (!('webkitSpeechRecognition' in window)) {
 		      if (final_transcript || interim_transcript) {
 			            showButtons('inline-block');
 			          }
+		      sendCaptionData(final_transcript);
+		      console.log('end transcription');
 		    };
 }
 
@@ -637,4 +641,10 @@ function showButtons(style) {
 	  //copy_info.style.display = 'none';
 	  //email_info.style.display = 'none';
 }
+
+function googleTranslateElementInit() {
+	  new google.translate.TranslateElement({pageLanguage: 'en'}, 'google_translate_element');
+}
+
+
 

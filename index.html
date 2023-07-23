@@ -25,7 +25,7 @@
   </div>
   <textarea id="dataChannelSend" disabled style="width:100%;"></textarea>
   <div id="buttons">
-    <button id="sendButton" disabled>Send</button>
+    <button id="sendButton">Send</button>
   </div>
 
     <div id="div_language">
@@ -38,6 +38,10 @@
 				    <button id="start_button" onclick="startButton(event)">
 					        Start</button>
 			  </div>
+
+			  <div id="google_translate_element"></div>
+
+			  <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 			  <div id="info">
 				    <p id="info_start">Click on the microphone icon and begin speaking.</p>
